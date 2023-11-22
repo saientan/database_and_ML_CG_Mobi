@@ -1,0 +1,95 @@
+# LAMMPS input
+echo both
+
+#---------------------------------------------------------------
+# Variables
+#---------------------------------------------------------------
+
+# General
+variable dt       equal 0.5         # time step
+variable tdamp    equal ${dt}*100   # thermostat coupling
+variable pdamp    equal ${dt}*1000  # barostat coupling
+variable mytemp   equal 298.15      # temperature (K)
+variable mypress  equal 1.0         # pressure (atm)
+variable seedv    equal 126657      # seed for velocities
+
+
+# Simulation time in NANOSECONDS
+variable tnpt1     equal  10.0  #  NPT Nose-Hoover Equil
+variable tnpt2     equal  10.0  #  NPT Nose-Hoover Prod
+
+
+# Number of time steps (no need to change it)
+variable nnpt1     equal ${tnpt1}*1000000/${dt}
+variable nnpt2     equal ${tnpt2}*1000000/${dt}
+
+
+#---------------------------------------------------------------
+# General options
+#---------------------------------------------------------------
+units real
+boundary p p p
+atom_style full
+
+
+#---------------------------------------------------------------
+# Read input data
+#---------------------------------------------------------------
+#read_data after_ibi.data
+read_data CGsystem.data
+
+
+#---------------------------------------------------------------
+# Give some velocity
+#---------------------------------------------------------------
+velocity all create ${mytemp} ${seedv} dist gaussian mom yes rot yes
+
+
+#---------------------------------------------------------------
+# Potential specification
+#---------------------------------------------------------------
+pair_style	table linear 1550 
+pair_coeff	1 1 potential_table VOTCA 15.5
+
+
+#---------------------------------------------------------------
+# NPT Nose-Hoover Equilibration
+#---------------------------------------------------------------
+
+
+fix 1 all npt temp ${mytemp} ${mytemp} ${tdamp} iso ${mypress} ${mypress} ${pdamp}
+compute msd all msd com yes
+
+
+timestep ${dt}
+thermo 1000
+thermo_style custom step time etotal pe vol density temp press enthalpy epair
+thermo_modify lost error flush yes
+run ${nnpt1}
+write_data after-equil-CG.data
+write_restart after-equil-CG.rst
+
+
+#---------------------------------------------------------------
+# NPT Nose-Hoover Production
+#---------------------------------------------------------------
+
+
+fix 1 all npt temp ${mytemp} ${mytemp} ${tdamp} iso ${mypress} ${mypress} ${pdamp}
+compute allmol all chunk/atom molecule
+compute myCOM all com/chunk allmol
+fix 2 all ave/time 10000 1 10000 c_myCOM[*] file msd.out mode vector
+
+timestep ${dt}
+thermo 1000
+thermo_style custom step time etotal pe vol density temp press enthalpy epair
+thermo_modify lost error flush yes
+dump 100 all custom 1000 traj-CG.dump id type mol xs ys zs 
+dump_modify 100 sort id
+run ${nnpt2}
+unfix 1
+unfix 2
+
+write_data after-prod-CG.data
+write_restart after-prod-CG.rst
+undump 100

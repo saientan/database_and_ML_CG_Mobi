@@ -1,0 +1,10 @@
+ <topology name="traj-CG.dump">
+    <molecules>
+        <clear />
+        <molecule name="TRIMEPECG" nmols="1000" nbeads="1">
+	  <bead name="A1" type="A" mass="114.2302" q="0.0000" />
+        </molecule> 
+    </molecules> 
+	<bonded> 
+	</bonded>
+</topology>

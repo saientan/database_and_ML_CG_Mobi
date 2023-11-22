@@ -1,0 +1,10 @@
+<cg>
+    <non-bonded>
+        <name>nb.A-A</name>
+        <type1>A</type1>
+        <type2>A</type2>
+        <min>0.1</min>
+        <max>2.5</max>
+        <step>0.0005</step>
+    </non-bonded>
+</cg>
